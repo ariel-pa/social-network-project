@@ -15,6 +15,7 @@ import { useDispatch } from "react-redux";
 import { setLogin } from "state";
 import Dropzone from "react-dropzone";
 import FlexBetween from "components/FlexBetween";
+import { Constant } from "./../../config";
 
 const registerSchema = yup.object().shape({
     firstName: yup.string().required("required"),
@@ -54,7 +55,59 @@ const Form = () => {
     const isLogin = pageType === "login";
     const isRegister = pageType === "register";
 
-    const handleFormSubmit = async (values, onSubmitProps) => { };
+    const register = async (values, onSubmitProps) => {
+        console.log(typeof values);
+        // //envio de la informacion con la imagen
+        const formData = new FormData();
+        for (let value in values) {
+          formData.append(value, values[value]);
+        }
+        formData.append("picturePath", values.picture.name);
+
+        const savedUserResponse = await fetch(
+            `${Constant.baseUrl}/auth/register`,
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+        const savedUser = await savedUserResponse.json()
+        onSubmitProps.resetForm();
+
+        /* redirecionar al login */
+        if(savedUser){
+            setPageType("login")
+        }
+    }
+
+    const login = async (values, onSubmitProps) => {
+       
+        const loggedInResponse = await fetch(
+            `${Constant.baseUrl}/auth/login`,
+            {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(values),
+            }
+        );
+        const loggedIn = await loggedInResponse.json()
+        onSubmitProps.resetForm();
+
+        if(loggedIn){
+            /* acceder a home */
+            dispatch(
+                setLogin({
+                  user: loggedIn.user,
+                  token: loggedIn.token,
+                })
+              );
+              navigate("/home");
+        }
+    }
+    const handleFormSubmit = async (values, onSubmitProps) => {
+        if (isLogin) await login(values, onSubmitProps);
+        if (isRegister) await register(values, onSubmitProps);
+    };
 
     return (
         <Formik
@@ -204,10 +257,10 @@ const Form = () => {
                                 },
                             }}
                         >
-                            {isLogin ? "INGRESAR": "REGISTRAR"}
+                            {isLogin ? "INGRESAR" : "REGISTRAR"}
                         </Button>
-                        <Typography 
-                            onClick={()=>{
+                        <Typography
+                            onClick={() => {
                                 setPageType(isLogin ? "register" : "login");
                                 resetForm();
                             }}
@@ -220,7 +273,7 @@ const Form = () => {
                                 },
                             }}
                         >
-                            {isLogin ? "¿No tiene una cuenta? UP here.": "¿Tiene una cuenta? Login here."}
+                            {isLogin ? "¿No tiene una cuenta? UP here." : "¿Tiene una cuenta? Login here."}
                         </Typography>
                     </Box>
                 </form>
